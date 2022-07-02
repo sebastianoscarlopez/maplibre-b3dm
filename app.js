@@ -1,42 +1,40 @@
-/* global mapboxgl */ // Imported via <script> tag
-import Mapbox3DTilesLayer from './mapbox-3d-tiles-layer/mapbox-3d-tiles-layer';
-
-// TODO - Add your mapbox token here
-mapboxgl.accessToken =
-  'pk.eyJ1Ijoic2ViYXN0aWFub3NjYXJsb3BleiIsImEiOiJjbDA1ZW5ueDkxbmszM2RucHdueW02MXViIn0.7WjEaDjCoKzpbaB3rZ_RAg'; //process.env.MapboxAccessToken; // eslint-disable-line
+/* global maplibregl */ // Imported via <script> tag
+import maplibre3DTilesLayer from './maplibre-3d-tiles-layer/maplibre-3d-tiles-layer';
 
 const BASE_TILESET_URL = 'https://raw.githubusercontent.com/visgl/deck.gl-data/master';
 const ROTTERDAM_TILESET_URL = `${BASE_TILESET_URL}/3d-tiles/geodan/rotterdam/tileset.json`;
 const AHN_TILESET_URL = `${BASE_TILESET_URL}/3d-tiles/geodan/ahn/tileset.json`;
+const THERMO = `http://192.168.0.61:3002/tileset.json`;
 
-// Load the mapbox map
-const map = new mapboxgl.Map({
+// Load the maplibre map
+const map = new maplibregl.Map({
   container: 'map',
-  style: 'mapbox://styles/mapbox/dark-v10?optimize=true',
-  center: [-58.4, -34.6],
-  zoom: 11.5,
+  style: 'https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
+  // center: [-58.4, -34.6], // Rotterdam
+  center: [-58.381507, -34.603344], // Buenos Aires
+  zoom: 18,
   bearing: -135,
   pitch: 60,
   hash: true
 });
 
 map.on('style.load', function () {
-  const rotterdam = new Mapbox3DTilesLayer({
-    id: 'rotterdam',
-    url: 'http://localhost:3002/tileset.json', //ROTTERDAM_TILESET_URL,
-    color: 0xffffff,
+  const layer3dtile = new maplibre3DTilesLayer({
+    id: '3dtile',
+    url: THERMO,
+    color: 0xBBFFBB,
     opacity: 0.9
   });
-  map.addLayer(rotterdam, 'waterway-label');
+  map.addLayer(layer3dtile);
 
-  // const ahn = new Mapbox3DTilesLayer({
+  // const ahn = new maplibre3DTilesLayer({
   //   id: 'ahn',
   //   url: 'http://localhost:3000/tileset.json',//AHN_TILESET_URL,
   //   color: 0x007722,
   //   opacity: 1.0,
   //   pointsize: 1.0
   // });
-  // map.addLayer(ahn, 'rotterdam');
+  // map.addLayer(ahn);
 });
 
 /*

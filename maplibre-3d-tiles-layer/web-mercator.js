@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 const WEBMERCATOR_EXTENT = 20037508.3427892;
 
-export function transform2mapbox(matrix) {
+export function transform2maplibre(matrix) {
   const min = -WEBMERCATOR_EXTENT;
   const max = WEBMERCATOR_EXTENT;
   const scale = 1 / (2 * WEBMERCATOR_EXTENT);
@@ -27,7 +27,7 @@ export function transform2mapbox(matrix) {
 }
 
 /*
-function webmercator2mapbox(x, y, z) {
+function webmercator2maplibre(x, y, z) {
   const min = -WEBMERCATOR_EXTENT;
   const max = WEBMERCATOR_EXTENT;
   const range = 2 * WEBMERCATOR_EXTENT;

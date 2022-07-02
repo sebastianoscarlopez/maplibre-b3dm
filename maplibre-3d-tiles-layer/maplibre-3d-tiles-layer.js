@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import THREETileset from '../threejs-3d-tiles/three-tileset';
-import {transform2mapbox} from './web-mercator';
+import {transform2maplibre} from './web-mercator';
 
-export default class Mapbox3DTilesLayer {
+export default class maplibre3DTilesLayer {
   constructor(params) {
-    if (!params) throw new Error('parameters missing for mapbox 3D tiles layer');
-    if (!params.id) throw new Error('id parameter missing for mapbox 3D tiles layer');
-    if (!params.url) throw new Error('url parameter missing for mapbox 3D tiles layer');
+    if (!params) throw new Error('parameters missing for maplibre 3D tiles layer');
+    if (!params.id) throw new Error('id parameter missing for maplibre 3D tiles layer');
+    if (!params.url) throw new Error('url parameter missing for maplibre 3D tiles layer');
 
     this.id = params.id;
     this.url = params.url;
@@ -25,7 +25,7 @@ export default class Mapbox3DTilesLayer {
 
   async onAdd(map, gl) {
     this.map = map;
-    this.rootTransform = transform2mapbox([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]); // identity matrix tranformed to mapbox scale
+    this.rootTransform = transform2maplibre([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]); // identity matrix tranformed to maplibre scale
 
     this.renderer = new THREE.WebGLRenderer({
       canvas: map.getCanvas(),
@@ -50,9 +50,9 @@ export default class Mapbox3DTilesLayer {
     this.tileset = new THREETileset(json, this.styleParams, this.url);
 
     if (this.tileset.root.transform) {
-      this.rootTransform = transform2mapbox(this.tileset.root.transform);
+      this.rootTransform = transform2maplibre(this.tileset.root.transform);
     } else {
-      this.rootTransform = transform2mapbox([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]); // identity matrix tranformed to mapbox scale
+      this.rootTransform = transform2maplibre([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]); // identity matrix tranformed to maplibre scale
     }
 
     if (this.tileset.root) {

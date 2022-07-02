@@ -29,10 +29,10 @@ function createTHREEBoxFromOBB(box) {
   const rot3 = new THREE.Matrix4().makeRotationX( (90)*Math.PI/180);
  
 
-  boxR.applyMatrix4(rot1);
-  boxR.applyMatrix4(rot2);
-  boxR.applyMatrix4(rot3);
-  boxR.applyMatrix4(trans); 
+  // boxR.applyMatrix4(rot1);
+  // boxR.applyMatrix4(rot2);
+  // boxR.applyMatrix4(rot3);
+  // boxR.applyMatrix4(trans); 
   return boxR
   
 }
@@ -50,11 +50,11 @@ function createTHREEOutlineFromOBB(box) {
   const rot1 = new THREE.Matrix4().makeRotationX( (90+34.70838499415735)*Math.PI/180);
   const rot2 = new THREE.Matrix4().makeRotationZ( (90-58.5348063426956)*Math.PI/180);
   const rot3 = new THREE.Matrix4().makeRotationX( (90)*Math.PI/180);
-  rot1.multiplyMatrices(rot1, rot2);
-  rot1.multiplyMatrices(rot1, rot3);
+  // rot1.multiplyMatrices(rot1, rot2);
+  // rot1.multiplyMatrices(rot1, rot3);
 
-  line.applyMatrix(rot1);
-  line.applyMatrix(trans);    
+  // line.applyMatrix(rot1);
+  // line.applyMatrix(trans);    
   return line;
 }
 
@@ -119,6 +119,7 @@ export default class TileHeader {
       return;
     }
 
+    //console.log(this.box)
     const dist = this.box.distanceToPoint(cameraPosition);
 
     // console.log(`dist: ${dist}, geometricError: ${this.geometricError}`);
