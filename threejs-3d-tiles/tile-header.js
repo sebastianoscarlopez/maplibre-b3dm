@@ -60,11 +60,12 @@ function createTHREEOutlineFromOBB(box) {
 
 export default class TileHeader {
   // eslint-disable-next-line max-statements
-  constructor(json, resourcePath, styleParams, parentRefine, isRoot) {
+  constructor(json, resourcePath, styleParams, parentRefine, isRoot, gltfUpAxis) {
     this.loaded = false;
     this.styleParams = styleParams;
     this.resourcePath = resourcePath;
     this.debug = DEBUG;
+    this.gltfUpAxis = gltfUpAxis;
 
     this.extent = null;
     this.sw = null;
@@ -104,7 +105,8 @@ export default class TileHeader {
           this.resourcePath,
           this.styleParams,
           this.refine,
-          false
+          false,
+          this.gltfUpAxis
         );
         this.childContent.add(child.totalContent);
         this.children.push(child);
@@ -252,9 +254,12 @@ export default class TileHeader {
 
   _createGLTFNodes(d, tileContent) {
     const loader = new GLTFLoader();
-    const rotateX = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
 
-    tileContent.applyMatrix(rotateX); // convert from GLTF Y-up to Z-up
+    if (this.gltfUpAxis === "Y") {
+      const rotateX = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+      tileContent.applyMatrix(rotateX); // convert from GLTF Y-up to Z-up
+    }
+
     loader.parse(
       d.glbData,
       this.resourcePath,
