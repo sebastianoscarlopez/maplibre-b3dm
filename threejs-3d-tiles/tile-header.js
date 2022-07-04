@@ -1,61 +1,91 @@
 import * as THREE from 'three';
-import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
-import {loadBatchedModelTile, loadPointTile} from './tile-parsers';
+import { loadBatchedModelTile, loadPointTile } from './tile-parsers';
 
 const DEBUG = true;
+
 // Create a THREE.Box3 from a 3D Tiles OBB
 function createTHREEBoxFromOBB(box) {
+  const center = new THREE.Vector3(box[0], box[1], box[2]);
 
-  //const rotation = getBoundingBoxRotation(box);
-  const xDirection = [box[3], box[4], box[5]];
-  const xLengt = getDist(xDirection);
-  const yDirection = THREE.Vector3(box[6], box[7], box[8]);
-  
-  const zDirection = THREE.Vector3(box[9], box[10], box[11]);
-  
-  const iVersor = [box[3]/xLengt, box[4]/xLengt, box[5]/xLengt];
-  const jVersor = [box[6], box[7], box[8]];
-  const kVersor = [box[9], box[10], box[11]];
-  const extent = [box[0] - box[3], box[1] - box[7], box[0] + box[3], box[1] + box[7]];
+  const trans = new THREE.Matrix4().makeTranslation(center.x, center.y, center.z);
+  const rot1 = new THREE.Matrix4().makeRotationX((90 + 34.528457957255185) * Math.PI / 180);
+  const rot2 = new THREE.Matrix4().makeRotationZ((90 - 58.5348063426956) * Math.PI / 180);
 
-  const sw = new THREE.Vector3(-box[3] , -box[7] , -box[11]);
-  const ne = new THREE.Vector3(box[3] , box[7] ,  box[11]);
+  const sw = new THREE.Vector3(-box[3], -box[7], -box[11]);
+  const ne = new THREE.Vector3(box[3], box[7], box[11]);
 
   const boxR = new THREE.Box3(sw, ne);
-  const trans = new THREE.Matrix4().makeTranslation(box[0], box[1], box[2]);; 
-  const rot1 = new THREE.Matrix4().makeRotationX( (90+34)*Math.PI/180);
-  const rot2 = new THREE.Matrix4().makeRotationZ( (90-58)*Math.PI/180);
-  const rot3 = new THREE.Matrix4().makeRotationX( (90)*Math.PI/180);
- 
 
-  // boxR.applyMatrix4(rot1);
-  // boxR.applyMatrix4(rot2);
-  // boxR.applyMatrix4(rot3);
-  // boxR.applyMatrix4(trans); 
-  return boxR
-  
+  boxR.applyMatrix4(rot1);
+  boxR.applyMatrix4(rot2);
+  boxR.applyMatrix4(trans);
+
+  return boxR;
 }
-function getDist(vector){
-  return Math.sqrt(vector[0]^2 + vector[1]^2 + vector[2]^2)
+
+function createTHREESphereFromOBB(box) {
+  const center = new THREE.Vector3(box[0], box[1], box[2]);
+
+  var rad = 0;
+  for (var i = 3; i <= 11; i++) {
+    rad += box[i] * box[i];
+  }
+  rad = Math.sqrt(rad );
+  const sphere = new THREE.Sphere(center, rad);
+
+  return sphere;
 }
 
 function createTHREEOutlineFromOBB(box) {
+  const center = new THREE.Vector3(box[0], box[1], box[2]);
+  const trans = new THREE.Matrix4().makeTranslation(center.x, center.y, center.z);
+  const rot1 = new THREE.Matrix4().makeRotationX((90 + 34.70838499415735) * Math.PI / 180);
+  const rot2 = new THREE.Matrix4().makeRotationZ((90 - 58.5348063426956) * Math.PI / 180);
 
-  const geom = new THREE.BoxGeometry(box[3] * 2, box[7] * 2, box[11] * 2);
+  const geom = new THREE.BoxGeometry(Math.sqrt(box[3] * box[3] + box[4] * box[4] + box[5] * box[5]) * 2,
+    Math.sqrt(box[9] * box[9] + box[10] * box[10] + box[11] * box[11]) * 2,
+    Math.sqrt(box[6] * box[6] + box[7] * box[7] + box[8] * box[8]) * 2
+  );
   const edges = new THREE.EdgesGeometry(geom);
-  const degrade = 0x8*box[2] + 0x008000;
-  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color: degrade}));
-  const trans = new THREE.Matrix4().makeTranslation(box[0], box[1], box[2]);
-  const rot1 = new THREE.Matrix4().makeRotationX( (90+34.70838499415735)*Math.PI/180);
-  const rot2 = new THREE.Matrix4().makeRotationZ( (90-58.5348063426956)*Math.PI/180);
-  const rot3 = new THREE.Matrix4().makeRotationX( (90)*Math.PI/180);
-  // rot1.multiplyMatrices(rot1, rot2);
-  // rot1.multiplyMatrices(rot1, rot3);
+  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x00ff00 }));
 
-  // line.applyMatrix(rot1);
-  // line.applyMatrix(trans);    
+  line.applyMatrix(rot1);
+  line.applyMatrix(rot2);
+  line.applyMatrix(trans);
   return line;
+}
+
+function createTHREEOutlineSphereFromOBB(sphere) {
+
+  const center = new THREE.Vector3(sphere[0], sphere[1], sphere[2]);
+  const trans = new THREE.Matrix4().makeTranslation(center.x, center.y, center.z);
+
+  const rot1 = new THREE.Matrix4().makeRotationX((90 + 34.70838499415735) * Math.PI / 180);
+  const rot2 = new THREE.Matrix4().makeRotationZ((90 - 58.5348063426956) * Math.PI / 180);
+
+  var rad = 0;
+  for (var i = 3; i <= 11; i++) {
+    rad += sphere[i] * sphere[i];
+  }
+  rad = Math.sqrt(rad);
+
+  const geom = new THREE.SphereGeometry(rad, 16, 8, 0, Math.PI, 0, Math.PI);
+  const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+  material.wireframe = true;
+  const sph = new THREE.Mesh(geom, material);
+  const line = new THREE.LineSegments(geom, new THREE.LineBasicMaterial({ color: 0x00ff00 }));
+
+  line.applyMatrix(rot1);
+  line.applyMatrix(rot2);
+  line.applyMatrix(trans);
+
+  sph.applyMatrix(rot1);
+  sph.applyMatrix(rot2);
+  sph.applyMatrix(trans);
+
+  return sph;
 }
 
 export default class TileHeader {
@@ -66,25 +96,34 @@ export default class TileHeader {
     this.resourcePath = resourcePath;
     this.debug = DEBUG;
     this.gltfUpAxis = gltfUpAxis;
-
-    this.extent = null;
-    this.sw = null;
-    this.ne = null;
-    this.box = null;
-    this.center = null;
+    this.boundingGeometry = null;
+    this.isBox = false;
+    this.isSphere = false;
 
     this._createTHREENodes();
+
     this.boundingVolume = json.boundingVolume;
 
-    const box = this.boundingVolume && this.boundingVolume.box;
-    if (box) {
-      this.box = createTHREEBoxFromOBB(box);
-      if (DEBUG) {
-        this.totalContent.add(createTHREEOutlineFromOBB(box));
+    if (this.boundingVolume) {
+      if (this.boundingVolume.box && false) {
+        const boundingGeometry = this.boundingVolume.box;
+        this.isBox = true;
+        this.boundingGeometry = createTHREEBoxFromOBB(boundingGeometry);
+        if (DEBUG) {
+          this.totalContent.add(createTHREEOutlineFromOBB(boundingGeometry));
+        }
+      }
+      else if (this.boundingVolume.sphere || true) {
+        const boundingGeometry = this.boundingVolume.box;
+        this.isSphere = true;
+        this.boundingGeometry = createTHREESphereFromOBB(boundingGeometry);
+        if (DEBUG) {
+          this.totalContent.add(createTHREEOutlineSphereFromOBB(boundingGeometry));
+        }
       }
     }
-
     this._initTraversal(json, parentRefine, isRoot);
+
   }
 
   _initTraversal(json, parentRefine, isRoot) {
@@ -115,34 +154,102 @@ export default class TileHeader {
   }
 
   checkLoad(frustum, cameraPosition) {
+    const tLevel = (this.content.uri ? this.content.uri : this.content.url).replace(/.+_lv([\d]{0,2}).+/, '$1');
+    const geometry = this.boundingGeometry;
+
+    console.log(`checkload nivel ${tLevel}:`);
+
     // is this tile visible?
-    if (!frustum.intersectsBox(this.box)) {
+    var invisibility = false;
+    if (this.isBox) {
+      console.log(`la region es una caja`);
+      if (!frustum.intersectsBox(this.boundingGeometry)) {
+        invisibility = true;
+      }
+    }
+    else if (this.isSphere) {
+      console.log(`la region es una esfera`);
+      if (!frustum.intersectsSphere(this.boundingGeometry)) {
+        invisibility = true;
+      }
+    }
+    if (invisibility === true) {
+      console.log(` Baldosa nivel ${tLevel} no esta adentro de su limite`);
       this.unload(true);
+      console.log(` Baldosa nivel ${tLevel} y hijos invisibles`);
       return;
     }
 
-    //console.log(this.box)
-    const dist = this.box.distanceToPoint(cameraPosition);
+    /**
+     * TODO:
+     * dist calcula la distancia de la camara a la region delimitada por this.boundingGeometry.
+     * Dado que a this.boundingGeometry no se le aplico ninguna transformación despues de haberse 
+     * creado pero a la region de depuración si se le aplican todas las transformaciones por ser
+     * parte de la escena.
+     * Se me ocurren 2 formas de arreglarlo para que la distancia se calcule de la forma correcta.
+     *   La primera es encadenar todas las transformaciones de los padres para aplicarsela a la region
+     *   actual, para esto cada instancia deberia recibir la transformación acumulada de los padres 
+     *   para poder aplicarla a la region. (creo que es la mejor solución, solo aumentaira la creación
+     *   de los nodos).
+     *   La otra es aprovechar recursividad de checkload para parar la posicion de la camara 
+     *   corregida segun la transformacion de cada padre(mas facil de implementar pero se recalcularia
+     *   la posición de la camara para cada chequeo).
+    */
 
-    // console.log(`dist: ${dist}, geometricError: ${this.geometricError}`);
+    const dist = geometry.distanceToPoint(cameraPosition);
+    console.log(`la distancia de la geometria a la camara es: ${dist / 1000}km.`);
+    console.log(`El geometricError es: ${this.geometricError}.`);
+    if (this.isBox) {
+      console.log(
+        ` El centro de los limites del nivel ${tLevel} tienen centro en:
+      x: ${geometry.getCenter().x}
+      y: ${geometry.getCenter().y}
+  La posición de la camara es:
+      x: ${cameraPosition.x}
+      y: ${cameraPosition.y}
+      z: ${cameraPosition.z}`);
+    }
+    else if (this.isSphere) {
+      console.log(
+        ` La esfera del nivel ${tLevel} tienen centro en:
+      x: ${geometry.center.x}
+      y: ${geometry.center.y}
+      z: ${geometry.center.z}      
+  La posición de la camara es:
+      x: ${cameraPosition.x}
+      y: ${cameraPosition.y}
+      z: ${cameraPosition.z}`);
+    }
+
     // are we too far to render this tile?
     if (this.geometricError > 0.0 && dist > this.geometricError * 50.0) {
+      console.log(` La baldosa está ¡Muy lejos!. La baldosa y sus hijos se volceran invisibles`);
       this.unload(true);
       return;
     }
 
-    // should we load this tile?
+    // should we load this tile?    
     if (this.refine === 'REPLACE' && dist < this.geometricError * 20.0) {
+      console.log(` Baldosa nivel ${tLevel} ¡Muy cerca!`);
       this.unload(false);
+      console.log(` Baldosa nivel ${tLevel}, cambiando a baldosa invisible e hijos visibles`);
     } else {
+      console.log(` Baldosa nivel ${tLevel} a la distancia correcta.`);
       this.load();
+      console.log(` Cargando baldosa ${tLevel}.`);
     }
 
     // should we load its children?
+    console.log(` Hay  ${this.children.length} hijos en el ${tLevel}. Cargando hijos`);
     for (let i = 0; i < this.children.length; i++) {
       if (dist < this.geometricError * 20.0) {
+        console.log(` El hijo ${i} esta cerca de la camara. Chequeando carga...`);
+
+        // Acá se puede corregir la posicion de la camara para que el proximo que la
+        // reciba calcule bien la poscicion.
         this.children[i].checkLoad(frustum, cameraPosition);
       } else {
+        console.log(` El hijo ${i} esta muy lejos d ela camara`);
         this.children[i].unload(true);
       }
     }
@@ -218,7 +325,6 @@ export default class TileHeader {
   }
 
   // THREE.js instantiation
-
   _createTHREENodes() {
     this.totalContent = new THREE.Group(); // Three JS Object3D Group for this tile and all its children
     this.tileContent = new THREE.Group(); // Three JS Object3D Group for this tile's content

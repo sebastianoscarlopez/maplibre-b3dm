@@ -31,7 +31,10 @@ export default class THREETileset {
       camera: {
         position: cameraPosition
       },
-      cullingVolume: planes
+      cullingVolume: planes,
+      distanceScales:{
+        metersPerUnit: 1.0
+      }
     };
 
     this.tileset.update(frameState);
