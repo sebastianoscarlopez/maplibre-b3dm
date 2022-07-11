@@ -1,13 +1,14 @@
 /* global mapboxgl */ // Imported via <script> tag
 import Mapbox3DTilesLayer from './mapbox-3d-tiles-layer/mapbox-3d-tiles-layer';
-const DEBUG = true;
+const DEBUG = false;
 
 // TODO - Add your mapbox token here
 mapboxgl.accessToken =
   'pk.eyJ1Ijoic2ViYXN0aWFub3NjYXJsb3BleiIsImEiOiJjbDA1ZW5ueDkxbmszM2RucHdueW02MXViIn0.7WjEaDjCoKzpbaB3rZ_RAg'; //process.env.MapboxAccessToken; // eslint-disable-line
 
 const BASE_TILESET_URL = 'http://localhost:3002';
-const BUENOS_AIRES_TILESET_URL = `${BASE_TILESET_URL}/MESH 2021/L15/LR/6359_6158_-001_lv15_0_transform.json`;
+const BUENOS_AIRES_TILESET_URL = `${BASE_TILESET_URL}/tileset.json`;
+//const BUENOS_AIRES_TILESET_URL = `${BASE_TILESET_URL}/MESH 2021/L15/LR/6359_6158_-001_lv15_0_transform_sr.json`;
 
 // Load the mapbox map
 const map = new mapboxgl.Map({
@@ -26,7 +27,7 @@ map.on('style.load', function () {
     id: 'buenos_aires',
     url: BUENOS_AIRES_TILESET_URL,
     color: 0xffffff,
-    opacity: 0.5
+    opacity: 1.0
   });
   map.addLayer(buenosAires, 'waterway-label');
 

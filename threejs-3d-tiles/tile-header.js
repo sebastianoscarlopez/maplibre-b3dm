@@ -89,7 +89,7 @@ export default class TileHeader {
     this.boundingVolume = json.boundingVolume;
 
     if (this.boundingVolume) {
-      if (this.boundingVolume.box && false) {
+      if (this.boundingVolume.box ) {
         const boundingGeometry = this.boundingVolume.box;
         this.isBox = true;
         this.boundingGeometry = createTHREEBoxFromOBB(boundingGeometry);
@@ -97,7 +97,7 @@ export default class TileHeader {
           this.totalContent.add(createTHREEOutlineFromOBB(boundingGeometry));
         }
       }
-      else if (this.boundingVolume.sphere || true) {
+      else if (this.boundingVolume.sphere ) {
         const boundingGeometry = this.boundingVolume.box;
         this.isSphere = true;
         this.boundingGeometry = createTHREESphereFromOBB(boundingGeometry);
@@ -142,8 +142,8 @@ export default class TileHeader {
   checkLoad(frustum, cameraPosition) {
     const tLevel = (this.content.uri ? this.content.uri : this.content.url).replace(/.+_lv([\d]{0,2}).+/, '$1');
     const geometry = this.boundingGeometry;
-    const localTransform = this.totalContent.matrix;
-    const modelTransform = this.totalContent.modelViewMatrix;
+    //const localTransform = this.totalContent.matrix;
+    //const modelTransform = this.totalContent.modelViewMatrix;
     const worldTransform = this.totalContent.matrixWorld;
     var center = new THREE.Vector3();
 
@@ -197,11 +197,13 @@ export default class TileHeader {
       return;
     }
 
-    // should we load this tile?    
+    // should we load this tile?
+
     if (this.refine === 'REPLACE' && dist < this.geometricError * 20.0 && this.children.length >= 1) {
+//    if (this.refine === 'REPLACE' && dist < this.geometricError * 20.0 ) {
       console.log(`   Tile nivel ${tLevel} ¡Muy cerca!`);
+      console.log(`   Cambiando tile a invisible e hijos visibles`);
       this.unload(false);
-      console.log(`   Tile nivel ${tLevel}, cambiando a baldosa invisible e hijos visibles`);
     } else {
       console.log(`   Tile nivel ${tLevel} a la distancia correcta.`);
       this.load();
