@@ -1,9 +1,10 @@
 import * as THREE from 'three';
+import {Tileset3D} from '@loaders.gl/tiles';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 import { loadBatchedModelTile, loadPointTile } from './tile-parsers';
 
-const DEBUG = false;
+const DEBUG = true;
 
 // Create a THREE.Box3 from a 3D Tiles OBB
 function createTHREEBoxFromOBB(box) {
@@ -61,8 +62,7 @@ function createTHREEOutlineSphereFromOBB(sphere) {
   const rot2 = new THREE.Matrix4().makeRotationZ((90 - 58.5348063426956) * Math.PI / 180);
   const rad = sphere.radius;
   const geom = new THREE.SphereGeometry(rad, 16, 8, 0, Math.PI, 0, Math.PI);
-  const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-  material.wireframe = true;
+  const material = new THREE.MeshBasicMaterial({ color: 0x01ff01 , wireframe: true, transparent: true, opacity: 0.1});
   const sph = new THREE.Mesh(geom, material);
   sph.applyMatrix(rot1);
   sph.applyMatrix(rot2);
@@ -86,10 +86,9 @@ export default class TileHeader {
 
     this._createTHREENodes();
 
-    this.boundingVolume = json.boundingVolume;
-
-    if (this.boundingVolume) {
-      if (this.boundingVolume.box ) {
+    if (json.boundingVolume) {
+      this.boundingVolume = json.boundingVolume;
+      if (this.boundingVolume.box && false) {
         const boundingGeometry = this.boundingVolume.box;
         this.isBox = true;
         this.boundingGeometry = createTHREEBoxFromOBB(boundingGeometry);
@@ -97,7 +96,7 @@ export default class TileHeader {
           this.totalContent.add(createTHREEOutlineFromOBB(boundingGeometry));
         }
       }
-      else if (this.boundingVolume.sphere ) {
+      else if (this.boundingVolume.sphere || true) {
         const boundingGeometry = this.boundingVolume.box;
         this.isSphere = true;
         this.boundingGeometry = createTHREESphereFromOBB(boundingGeometry);
@@ -107,8 +106,6 @@ export default class TileHeader {
       }
     }
     this._initTraversal(json, parentRefine, isRoot);
-    //this.boundingGeometry.applyMatrix4(this.totalContent.matrixWorld);
-
   }
 
   _initTraversal(json, parentRefine, isRoot) {
@@ -131,7 +128,6 @@ export default class TileHeader {
           this.refine,
           false,
           this.gltfUpAxis
-          
         );
         this.childContent.add(child.totalContent);
         this.children.push(child);
@@ -140,10 +136,17 @@ export default class TileHeader {
   }
 
   checkLoad(frustum, cameraPosition) {
-    const tLevel = (this.content.uri ? this.content.uri : this.content.url).replace(/.+_lv([\d]{0,2}).+/, '$1');
+    var tLevel = -1;
+    if (this.content) {
+      var _url = this.content.uri ? this.content.uri : this.content.url;
+      if (!_url) return;
+      tLevel = _url.replace(/.+_lv([\d]{0,2}).+/, '$1');
+      console.log(`Checkload nivel ${tLevel}:`);
+    }
+    else{
+      console.log('Checkload probem, el hijo no tiene contenido');
+    }    
     const geometry = this.boundingGeometry;
-    //const localTransform = this.totalContent.matrix;
-    //const modelTransform = this.totalContent.modelViewMatrix;
     const worldTransform = this.totalContent.matrixWorld;
     var center = new THREE.Vector3();
 
@@ -151,24 +154,17 @@ export default class TileHeader {
       geometry.applyMatrix4(worldTransform);
       this.firstCheck = false;
     }
-    
-    console.log(`Checkload nivel ${tLevel}:`);
-    console.log(`   La tranf local es: ${localTransform.elements}`) ;
-    console.log(`   La tranf del modelo es: ${modelTransform.elements}`);
-    console.log(`   La tranf del mundo es: ${worldTransform.elements}`);
 
     // is this tile visible?
     var invisibility = false;
     if(this.isBox ){
       geometry.getCenter(center);
-      console.log(`   La region es una caja`);
       if (!frustum.intersectsBox(geometry)) {
         invisibility = true;
       }
     }
      else if (this.isSphere) {
       center = geometry.center;
-      console.log(`   La region es una esfera`);
       if (!frustum.intersectsSphere(geometry)) {
         invisibility = true;
       }
@@ -180,19 +176,18 @@ export default class TileHeader {
       y: ${cameraPosition.y}
       z: ${cameraPosition.z}`);
     if (invisibility === true ){
-      console.log(`   Baldosa nivel ${tLevel} no esta adentro de su limite`);
+      console.log(`   EL tile no esta adentro de su limite`);
       this.unload(true);
-      console.log(`   Baldosa nivel ${tLevel} e hijos invisibles`);
+      console.log(`   Tile e hijos invisibles`);
       return;
     }
 
     const dist = geometry.distanceToPoint(cameraPosition);
     console.log(`   La distancia de la geometria a la camara es: ${dist} metros.`);
-    console.log(`   El geometricError es: ${this.geometricError}.`);
 
     // are we too far to render this tile?
     if (this.geometricError > 0.0 && dist > this.geometricError * 50.0) {
-      console.log(`   El tile está ¡Muy lejos!. La baldosa y sus hijos se volceran invisibles`);
+      
       this.unload(true);
       return;
     }
@@ -201,22 +196,22 @@ export default class TileHeader {
 
     if (this.refine === 'REPLACE' && dist < this.geometricError * 20.0 && this.children.length >= 1) {
 //    if (this.refine === 'REPLACE' && dist < this.geometricError * 20.0 ) {
-      console.log(`   Tile nivel ${tLevel} ¡Muy cerca!`);
-      console.log(`   Cambiando tile a invisible e hijos visibles`);
       this.unload(false);
     } else {
-      console.log(`   Tile nivel ${tLevel} a la distancia correcta.`);
       this.load();
-      console.log(`   Cargando tile ${tLevel}.`);
     }
 
     // should we load its children?
     console.log(`   Hay  ${this.children.length} hijos en el ${tLevel}.`);
     for (let i = 0; i < this.children.length; i++) {
-      console.log(`   Cargando hijos`);
-      if (dist < this.geometricError * 20.0) {
+      if (dist < this.geometricError * 50.0) {
         console.log(`   El hijo ${i} esta cerca de la camara. Ejecutando Checkload...`);
-        this.children[i].checkLoad(frustum, cameraPosition);
+        if (this.children && this.children[i] && this.children[i].checkLoad){
+          this.children[i].checkLoad(frustum, cameraPosition);
+        }
+        else {
+          console.log(`   los hijos son ${typeof this.children[i]}`);
+        }
       } else {
         console.log(`   El hijo ${i} esta muy lejos d ela camara`);
         this.children[i].unload(true);
@@ -248,15 +243,26 @@ export default class TileHeader {
       if (!url) return;
       if (url.substr(0, 4) !== 'http') url = this.resourcePath + url;
       const type = url.slice(-4);
-
+      console.log(`cargando url: ${url} `);
       switch (type) {
         case 'json':
           // child is a tileset json
           const response = await fetch(url);
-          const tileset = await response.json;
+          const tileset = await response.json();
           // loadTileset(url, this.styleParams);
-          this.children.push(tileset.root);
+          const resourcePath = THREE.LoaderUtils.extractUrlBase(url);
+          console.log(`el path es del json es ${resourcePath}`);
+//          const refine = tileset.root.refine ? tileset.root.refine.toUpperCase() : 'ADD';
           if (tileset.root) {
+            console.log(`el json tiene root`);
+            const child = new TileHeader( tileset.root, 
+              resourcePath, 
+              this.styleParams, 
+              this.refine, 
+              false, 
+              this.gltfUpAxis);
+            this.children.push(child);
+            this.childContent.add(child.totalContent);
             // eslint-disable-next-line max-depth
             if (tileset.root.transform) {
               // the root tile transform of a tileset is normally not applied because
@@ -267,7 +273,6 @@ export default class TileHeader {
                 new THREE.Matrix4().fromArray(tileset.root.transform)
               );
             }
-            this.childContent.add(tileset.root.totalContent);
           }
           break;
 
