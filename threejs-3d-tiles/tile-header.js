@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 import { loadBatchedModelTile, loadPointTile } from './tile-parsers';
 
-const DEBUG = true;
+const DEBUG = false;
 
 // Create a THREE.Box3 from a 3D Tiles OBB
 function createTHREEBoxFromOBB(box) {
@@ -136,16 +136,7 @@ export default class TileHeader {
   }
 
   checkLoad(frustum, cameraPosition) {
-    var tLevel = -1;
-    if (this.content) {
-      var _url = this.content.uri ? this.content.uri : this.content.url;
-      if (!_url) return;
-      tLevel = _url.replace(/.+_lv([\d]{0,2}).+/, '$1');
-      console.log(`Checkload nivel ${tLevel}:`);
-    }
-    else{
-      console.log('Checkload probem, el hijo no tiene contenido');
-    }    
+
     const geometry = this.boundingGeometry;
     const worldTransform = this.totalContent.matrixWorld;
     var center = new THREE.Vector3();
@@ -169,21 +160,12 @@ export default class TileHeader {
         invisibility = true;
       }
     }
-    console.log(`   La posición de la región es: ${center.x}, ${center.y}, ${center.z}`);
-    console.log(
-`   La posición de la camara es:
-      x: ${cameraPosition.x}
-      y: ${cameraPosition.y}
-      z: ${cameraPosition.z}`);
     if (invisibility === true ){
-      console.log(`   EL tile no esta adentro de su limite`);
       this.unload(true);
-      console.log(`   Tile e hijos invisibles`);
       return;
     }
 
     const dist = geometry.distanceToPoint(cameraPosition);
-    console.log(`   La distancia de la geometria a la camara es: ${dist} metros.`);
 
     // are we too far to render this tile?
     if (this.geometricError > 0.0 && dist > this.geometricError * 50.0) {
@@ -194,26 +176,17 @@ export default class TileHeader {
 
     // should we load this tile?
 
-    if (this.refine === 'REPLACE' && dist < this.geometricError * 20.0 && this.children.length >= 1) {
-//    if (this.refine === 'REPLACE' && dist < this.geometricError * 20.0 ) {
+    if (this.refine === 'REPLACE' && dist < this.geometricError * 20.0 ) {
       this.unload(false);
     } else {
       this.load();
     }
 
     // should we load its children?
-    console.log(`   Hay  ${this.children.length} hijos en el ${tLevel}.`);
     for (let i = 0; i < this.children.length; i++) {
       if (dist < this.geometricError * 50.0) {
-        console.log(`   El hijo ${i} esta cerca de la camara. Ejecutando Checkload...`);
-        if (this.children && this.children[i] && this.children[i].checkLoad){
-          this.children[i].checkLoad(frustum, cameraPosition);
-        }
-        else {
-          console.log(`   los hijos son ${typeof this.children[i]}`);
-        }
+        this.children[i].checkLoad(frustum, cameraPosition);
       } else {
-        console.log(`   El hijo ${i} esta muy lejos d ela camara`);
         this.children[i].unload(true);
       }
     }
@@ -243,7 +216,6 @@ export default class TileHeader {
       if (!url) return;
       if (url.substr(0, 4) !== 'http') url = this.resourcePath + url;
       const type = url.slice(-4);
-      console.log(`cargando url: ${url} `);
       switch (type) {
         case 'json':
           // child is a tileset json
@@ -251,16 +223,15 @@ export default class TileHeader {
           const tileset = await response.json();
           // loadTileset(url, this.styleParams);
           const resourcePath = THREE.LoaderUtils.extractUrlBase(url);
-          console.log(`el path es del json es ${resourcePath}`);
-//          const refine = tileset.root.refine ? tileset.root.refine.toUpperCase() : 'ADD';
+          const refine = tileset.root.refine ? tileset.root.refine.toUpperCase() : 'ADD';
+          const gltfUp = tileset.asset.gltfUpAxis ? tileset.asset.gltfUpAxis : this.gltfUpAxis;
           if (tileset.root) {
-            console.log(`el json tiene root`);
             const child = new TileHeader( tileset.root, 
               resourcePath, 
               this.styleParams, 
-              this.refine, 
+              refine, 
               false, 
-              this.gltfUpAxis);
+              gltfUp);
             this.children.push(child);
             this.childContent.add(child.totalContent);
             // eslint-disable-next-line max-depth
