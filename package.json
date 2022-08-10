@@ -1,9 +1,9 @@
 {
-  "name": "mapbox-3dtiles",
-  "description": "A loaders.gl port of Geodan's 3D Tiles layer for mapbox-gl/THREE.js",
+  "name": "maplibre-3dtiles",
+  "description": "A loaders.gl port of Geodan's 3D Tiles layer for maplibre-gl/THREE.js",
   "version": "0.5.0",
   "private": true,
-  "author": "Geodan https://github.com/geodan/mapbox-3dtiles#readme",
+  "author": "Geodan https://github.com/geodan/maplibre-3dtiles#readme",
   "license": "BSD-3-Clause",
   "main": "index.html",
   "scripts": {
@@ -11,10 +11,10 @@
     "start-local": "webpack-dev-server --env.local --progress --hot --open"
   },
   "dependencies": {
-    "@loaders.gl/core": "2.2.0",
     "@loaders.gl/3d-tiles": "2.2.0",
+    "@loaders.gl/core": "2.2.0",
     "@math.gl/culling": "^3.5.1",
-    "mapbox-gl": "^1.1.1",
+    "maplibre-gl": "^2.1.9",
     "three": "^0.106.2"
   },
   "devDependencies": {

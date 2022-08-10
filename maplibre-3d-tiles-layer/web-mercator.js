@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-const WEBMERCATOR_EXTENT = 20037508.3427892;
+//const WEBMERCATOR_EXTENT = 20037508.3427892;
+const WEBMERCATOR_EXTENT = 20037508.342789244;
 
 export function transform2maplibre(matrix) {
   const min = -WEBMERCATOR_EXTENT;
