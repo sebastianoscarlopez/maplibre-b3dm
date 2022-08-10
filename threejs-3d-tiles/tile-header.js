@@ -1,88 +1,110 @@
 import * as THREE from 'three';
-import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
+import {Tileset3D} from '@loaders.gl/tiles';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
-import {loadBatchedModelTile, loadPointTile} from './tile-parsers';
+import { loadBatchedModelTile, loadPointTile } from './tile-parsers';
 
-const DEBUG = true;
+const DEBUG = false;
+
 // Create a THREE.Box3 from a 3D Tiles OBB
 function createTHREEBoxFromOBB(box) {
-
-  //const rotation = getBoundingBoxRotation(box);
-  const xDirection = [box[3], box[4], box[5]];
-  const xLengt = getDist(xDirection);
-  const yDirection = THREE.Vector3(box[6], box[7], box[8]);
-  
-  const zDirection = THREE.Vector3(box[9], box[10], box[11]);
-  
-  const iVersor = [box[3]/xLengt, box[4]/xLengt, box[5]/xLengt];
-  const jVersor = [box[6], box[7], box[8]];
-  const kVersor = [box[9], box[10], box[11]];
-  const extent = [box[0] - box[3], box[1] - box[7], box[0] + box[3], box[1] + box[7]];
-
-  const sw = new THREE.Vector3(-box[3] , -box[7] , -box[11]);
-  const ne = new THREE.Vector3(box[3] , box[7] ,  box[11]);
-
+  const center = new THREE.Vector3(box[0], box[1], box[2]);
+  const trans = new THREE.Matrix4().makeTranslation(center.x, center.y, center.z);
+  const rot1 = new THREE.Matrix4().makeRotationX((90 + 34.528457957255185) * Math.PI / 180);
+  const rot2 = new THREE.Matrix4().makeRotationZ((90 - 58.5348063426956) * Math.PI / 180);
+  const x = Math.sqrt(box[3]*box[3]+box[4]*box[4]+box[5]*box[5]);
+  const y = Math.sqrt(box[9]*box[9]+box[10]*box[10]+box[11]*box[11]);
+  const z = Math.sqrt(box[6]*box[6]+box[7]*box[7]+box[8]*box[8]);
+  const sw = new THREE.Vector3(-x, -y, -z);
+  const ne = new THREE.Vector3( x,  y,  z);
   const boxR = new THREE.Box3(sw, ne);
-  const trans = new THREE.Matrix4().makeTranslation(box[0], box[1], box[2]);; 
-  const rot1 = new THREE.Matrix4().makeRotationX( (90+34)*Math.PI/180);
-  const rot2 = new THREE.Matrix4().makeRotationZ( (90-58)*Math.PI/180);
-  const rot3 = new THREE.Matrix4().makeRotationX( (90)*Math.PI/180);
- 
+  boxR.applyMatrix4(rot1);
+  boxR.applyMatrix4(rot2);
+  boxR.applyMatrix4(trans);
 
-  // boxR.applyMatrix4(rot1);
-  // boxR.applyMatrix4(rot2);
-  // boxR.applyMatrix4(rot3);
-  // boxR.applyMatrix4(trans); 
-  return boxR
-  
+  return boxR;
 }
-function getDist(vector){
-  return Math.sqrt(vector[0]^2 + vector[1]^2 + vector[2]^2)
+
+function createTHREESphereFromOBB(box) {
+  const center = new THREE.Vector3(box[0], box[1], box[2]);
+  var rad = 0;
+  for (var i = 3; i <= 11; i++) {
+    rad += box[i] * box[i];
+  }
+  rad = Math.sqrt(rad );
+  const sphere = new THREE.Sphere(center, rad);
+
+  return sphere;
 }
 
 function createTHREEOutlineFromOBB(box) {
-
-  const geom = new THREE.BoxGeometry(box[3] * 2, box[7] * 2, box[11] * 2);
+  const center = new THREE.Vector3(box[0], box[1], box[2]);
+  const trans = new THREE.Matrix4().makeTranslation(center.x, center.y, center.z);
+  const rot1 = new THREE.Matrix4().makeRotationX((90 + 34.70838499415735) * Math.PI / 180);
+  const rot2 = new THREE.Matrix4().makeRotationZ((90 - 58.5348063426956) * Math.PI / 180);
+  const x = Math.sqrt(box[3]*box[3]+box[4]*box[4]+box[5]*box[5]);
+  const z = Math.sqrt(box[9]*box[9]+box[10]*box[10]+box[11]*box[11]);
+  const y = Math.sqrt(box[6]*box[6]+box[7]*box[7]+box[8]*box[8]);
+  const geom = new THREE.BoxGeometry(x * 2, y * 2, z * 2);
   const edges = new THREE.EdgesGeometry(geom);
-  const degrade = 0x8*box[2] + 0x008000;
-  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color: degrade}));
-  const trans = new THREE.Matrix4().makeTranslation(box[0], box[1], box[2]);
-  const rot1 = new THREE.Matrix4().makeRotationX( (90+34.70838499415735)*Math.PI/180);
-  const rot2 = new THREE.Matrix4().makeRotationZ( (90-58.5348063426956)*Math.PI/180);
-  const rot3 = new THREE.Matrix4().makeRotationX( (90)*Math.PI/180);
-  // rot1.multiplyMatrices(rot1, rot2);
-  // rot1.multiplyMatrices(rot1, rot3);
+  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x00ff00 }));
+  line.applyMatrix(rot1);
+  line.applyMatrix(rot2);
+  line.applyMatrix(trans);
 
-  // line.applyMatrix(rot1);
-  // line.applyMatrix(trans);    
   return line;
+}
+
+function createTHREEOutlineSphereFromOBB(sphere) {
+  const center = sphere.center;
+  const trans = new THREE.Matrix4().makeTranslation(center.x, center.y, center.z);
+  const rot1 = new THREE.Matrix4().makeRotationX((90 + 34.70838499415735) * Math.PI / 180);
+  const rot2 = new THREE.Matrix4().makeRotationZ((90 - 58.5348063426956) * Math.PI / 180);
+  const rad = sphere.radius;
+  const geom = new THREE.SphereGeometry(rad, 16, 8, 0, Math.PI, 0, Math.PI);
+  const material = new THREE.MeshBasicMaterial({ color: 0x01ff01 , wireframe: true, transparent: true, opacity: 0.1});
+  const sph = new THREE.Mesh(geom, material);
+  sph.applyMatrix(rot1);
+  sph.applyMatrix(rot2);
+  sph.applyMatrix(trans);
+
+  return sph;
 }
 
 export default class TileHeader {
   // eslint-disable-next-line max-statements
-  constructor(json, resourcePath, styleParams, parentRefine, isRoot) {
+  constructor(json, resourcePath, styleParams, parentRefine, isRoot, gltfUpAxis ) {
     this.loaded = false;
     this.styleParams = styleParams;
     this.resourcePath = resourcePath;
     this.debug = DEBUG;
-
-    this.extent = null;
-    this.sw = null;
-    this.ne = null;
-    this.box = null;
-    this.center = null;
+    this.gltfUpAxis = gltfUpAxis;
+    this.boundingGeometry = null;
+    this.firstCheck = true;
+    this.isBox = false;
+    this.isSphere = false;
 
     this._createTHREENodes();
-    this.boundingVolume = json.boundingVolume;
 
-    const box = this.boundingVolume && this.boundingVolume.box;
-    if (box) {
-      this.box = createTHREEBoxFromOBB(box);
-      if (DEBUG) {
-        this.totalContent.add(createTHREEOutlineFromOBB(box));
+    if (json.boundingVolume) {
+      this.boundingVolume = json.boundingVolume;
+      if (this.boundingVolume.box && false) {
+        const boundingGeometry = this.boundingVolume.box;
+        this.isBox = true;
+        this.boundingGeometry = createTHREEBoxFromOBB(boundingGeometry);
+        if (DEBUG) {
+          this.totalContent.add(createTHREEOutlineFromOBB(boundingGeometry));
+        }
+      }
+      else if (this.boundingVolume.sphere || true) {
+        const boundingGeometry = this.boundingVolume.box;
+        this.isSphere = true;
+        this.boundingGeometry = createTHREESphereFromOBB(boundingGeometry);
+        if (DEBUG) {
+          this.totalContent.add(createTHREEOutlineSphereFromOBB(this.boundingGeometry));
+        }
       }
     }
-
     this._initTraversal(json, parentRefine, isRoot);
   }
 
@@ -104,7 +126,8 @@ export default class TileHeader {
           this.resourcePath,
           this.styleParams,
           this.refine,
-          false
+          false,
+          this.gltfUpAxis
         );
         this.childContent.add(child.totalContent);
         this.children.push(child);
@@ -113,24 +136,47 @@ export default class TileHeader {
   }
 
   checkLoad(frustum, cameraPosition) {
+
+    const geometry = this.boundingGeometry;
+    const worldTransform = this.totalContent.matrixWorld;
+    var center = new THREE.Vector3();
+
+    if(this.firstCheck === true){
+      geometry.applyMatrix4(worldTransform);
+      this.firstCheck = false;
+    }
+
     // is this tile visible?
-    if (!frustum.intersectsBox(this.box)) {
+    var invisibility = false;
+    if(this.isBox ){
+      geometry.getCenter(center);
+      if (!frustum.intersectsBox(geometry)) {
+        invisibility = true;
+      }
+    }
+     else if (this.isSphere) {
+      center = geometry.center;
+      if (!frustum.intersectsSphere(geometry)) {
+        invisibility = true;
+      }
+    }
+    if (invisibility === true ){
       this.unload(true);
       return;
     }
 
-    //console.log(this.box)
-    const dist = this.box.distanceToPoint(cameraPosition);
+    const dist = geometry.distanceToPoint(cameraPosition);
 
-    // console.log(`dist: ${dist}, geometricError: ${this.geometricError}`);
     // are we too far to render this tile?
     if (this.geometricError > 0.0 && dist > this.geometricError * 50.0) {
+      
       this.unload(true);
       return;
     }
 
     // should we load this tile?
-    if (this.refine === 'REPLACE' && dist < this.geometricError * 20.0) {
+
+    if (this.refine === 'REPLACE' && dist < this.geometricError * 20.0 ) {
       this.unload(false);
     } else {
       this.load();
@@ -138,7 +184,7 @@ export default class TileHeader {
 
     // should we load its children?
     for (let i = 0; i < this.children.length; i++) {
-      if (dist < this.geometricError * 20.0) {
+      if (dist < this.geometricError * 50.0) {
         this.children[i].checkLoad(frustum, cameraPosition);
       } else {
         this.children[i].unload(true);
@@ -170,15 +216,24 @@ export default class TileHeader {
       if (!url) return;
       if (url.substr(0, 4) !== 'http') url = this.resourcePath + url;
       const type = url.slice(-4);
-
       switch (type) {
         case 'json':
           // child is a tileset json
           const response = await fetch(url);
-          const tileset = await response.json;
+          const tileset = await response.json();
           // loadTileset(url, this.styleParams);
-          this.children.push(tileset.root);
+          const resourcePath = THREE.LoaderUtils.extractUrlBase(url);
+          const refine = tileset.root.refine ? tileset.root.refine.toUpperCase() : 'ADD';
+          const gltfUp = tileset.asset.gltfUpAxis ? tileset.asset.gltfUpAxis : this.gltfUpAxis;
           if (tileset.root) {
+            const child = new TileHeader( tileset.root, 
+              resourcePath, 
+              this.styleParams, 
+              refine, 
+              false, 
+              gltfUp);
+            this.children.push(child);
+            this.childContent.add(child.totalContent);
             // eslint-disable-next-line max-depth
             if (tileset.root.transform) {
               // the root tile transform of a tileset is normally not applied because
@@ -189,7 +244,6 @@ export default class TileHeader {
                 new THREE.Matrix4().fromArray(tileset.root.transform)
               );
             }
-            this.childContent.add(tileset.root.totalContent);
           }
           break;
 
@@ -216,7 +270,6 @@ export default class TileHeader {
   }
 
   // THREE.js instantiation
-
   _createTHREENodes() {
     this.totalContent = new THREE.Group(); // Three JS Object3D Group for this tile and all its children
     this.tileContent = new THREE.Group(); // Three JS Object3D Group for this tile's content
@@ -252,9 +305,12 @@ export default class TileHeader {
 
   _createGLTFNodes(d, tileContent) {
     const loader = new GLTFLoader();
-    const rotateX = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
 
-    tileContent.applyMatrix(rotateX); // convert from GLTF Y-up to Z-up
+    if (this.gltfUpAxis === "Y") {
+      const rotateX = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+      tileContent.applyMatrix(rotateX); // convert from GLTF Y-up to Z-up
+    }
+
     loader.parse(
       d.glbData,
       this.resourcePath,

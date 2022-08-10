@@ -8,12 +8,12 @@ export default class THREETileset {
     this.url = url;
     this.version = json.asset.version;
     this.geometricError = json.geometricError;
-    this.gltfUpAxis = 'Z';
+    this.gltfUpAxis = json.asset.gltfUpAxis;
     this.refine = json.refine ? json.refine.toUpperCase() : 'ADD';
     this.root = null;
 
     const resourcePath = THREE.LoaderUtils.extractUrlBase(url);
-    this.root = new TileHeader(json.root, resourcePath, styleParams, this.refine, true);
+    this.root = new TileHeader(json.root, resourcePath, styleParams, this.refine, true, this.gltfUpAxis);
 
     this.tileset = new Tileset3D(json, url, {
       onTileLoad: (tile) => console.log('Load', tile), // eslint-disable-line
@@ -31,7 +31,10 @@ export default class THREETileset {
       camera: {
         position: cameraPosition
       },
-      cullingVolume: planes
+      cullingVolume: planes,
+      distanceScales:{
+        metersPerUnit: 1.0
+      }
     };
 
     this.tileset.update(frameState);
