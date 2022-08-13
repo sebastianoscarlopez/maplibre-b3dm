@@ -1,12 +1,13 @@
 import * as THREE from 'three';
-import {Tileset3D} from '@loaders.gl/tiles';
+import { Tileset3D } from '@loaders.gl/tiles';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 import { loadBatchedModelTile, loadPointTile } from './tile-parsers';
 
-const DEBUG = true;
+const DEBUG = false;
 
 //temporales par implementar rapido region esferica
+//Rotacion del root para antitransformar coordenadas  y verlas alineadas con los ejes del mapa en la depuracion
 const rot1 = new THREE.Matrix4().makeRotationX((90 + 34.70838499415735) * Math.PI / 180);
 const rot2 = new THREE.Matrix4().makeRotationZ((90 - 58.5348063426956) * Math.PI / 180);
 const rot = rot2.multiply(rot1);
@@ -104,7 +105,7 @@ function createTHREEOutlineSphereFromOBB(sphere) {
 
 export default class TileHeader {
   // eslint-disable-next-line max-statements
-  constructor(json, resourcePath, styleParams, parentRefine, isRoot, gltfUpAxis ) {
+  constructor(json, resourcePath, styleParams, parentRefine, isRoot, gltfUpAxis) {
     this.loaded = false;
     this.styleParams = styleParams;
     this.resourcePath = resourcePath;
@@ -168,30 +169,34 @@ export default class TileHeader {
 
   checkLoad(frustum, cameraPosition) {
 
-    const geometry = this.boundingGeometry;
-    const worldTransform = this.totalContent.matrixWorld;
-    var center = new THREE.Vector3();
-
-    if(this.firstCheck === true){
-      geometry.applyMatrix4(worldTransform);
+    if (this.firstCheck === true) {
+      //geometry.applyMatrix4(worldTransform);
+      this.boundingGeometry.applyMatrix4(this.totalContent.matrixWorld);
       this.firstCheck = false;
     }
+    const geometry = this.boundingGeometry;
 
     // is this tile visible?
     var invisibility = false;
-    if(this.isBox ){
-      geometry.getCenter(center);
+    if (this.isBox) {
+      /*Obtener centro de la region en el sistema del mapa */
+      //geometry.getCenter(center);
+      //center.applyMatrix4(rotI);
       if (!frustum.intersectsBox(geometry)) {
         invisibility = true;
       }
     }
-     else if (this.isSphere) {
-      center = geometry.center;
+    else if (this.isSphere) {
+      //center = geometry.center;
+      //center.applyMatrix4(rotI);
       if (!frustum.intersectsSphere(geometry)) {
         invisibility = true;
       }
     }
-    if (invisibility === true ){
+    /*Obtener posicion d ela camara en el sistema del mapa */
+    //const camaraRot = new THREE.Vector3(cameraPosition.x, cameraPosition.y, cameraPosition.z).applyMatrix4(rotI);
+
+    if (invisibility === true) {
       this.unload(true);
       return;
     }
@@ -199,23 +204,22 @@ export default class TileHeader {
     const dist = geometry.distanceToPoint(cameraPosition);
 
     // are we too far to render this tile?
-    if (this.geometricError > 0.0 && dist > this.geometricError * 50.0) {
-      
+    if (this.geometricError > 0.0 && dist > this.geometricError * 250.0) {
       this.unload(true);
       return;
-    }
-
-    // should we load this tile?
-
-    if (this.refine === 'REPLACE' && dist < this.geometricError * 20.0 ) {
-      this.unload(false);
     } else {
       this.load();
     }
 
+    // should we load this tile?
+    if (this.children) {
+      if (this.refine === 'REPLACE' && dist < this.geometricError * 20.0 && this.children.length != 0) {
+        this.unload(false);
+      }
+    }
     // should we load its children?
     for (let i = 0; i < this.children.length; i++) {
-      if (dist < this.geometricError * 50.0) {
+      if (dist <= this.geometricError * 20.0) {
         this.children[i].checkLoad(frustum, cameraPosition);
       } else {
         this.children[i].unload(true);
@@ -257,11 +261,11 @@ export default class TileHeader {
           const refine = tileset.root.refine ? tileset.root.refine.toUpperCase() : 'ADD';
           const gltfUp = tileset.asset.gltfUpAxis ? tileset.asset.gltfUpAxis : this.gltfUpAxis;
           if (tileset.root) {
-            const child = new TileHeader( tileset.root, 
-              resourcePath, 
-              this.styleParams, 
-              refine, 
-              false, 
+            const child = new TileHeader(tileset.root,
+              resourcePath,
+              this.styleParams,
+              refine,
+              false,
               gltfUp);
             this.children.push(child);
             this.childContent.add(child.totalContent);
