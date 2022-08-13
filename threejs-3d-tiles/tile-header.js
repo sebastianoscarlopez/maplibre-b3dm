@@ -4,22 +4,41 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 import { loadBatchedModelTile, loadPointTile } from './tile-parsers';
 
-const DEBUG = false;
+const DEBUG = true;
+
+//temporales par implementar rapido region esferica
+const rot1 = new THREE.Matrix4().makeRotationX((90 + 34.70838499415735) * Math.PI / 180);
+const rot2 = new THREE.Matrix4().makeRotationZ((90 - 58.5348063426956) * Math.PI / 180);
+const rot = rot2.multiply(rot1);
+const rotI = new THREE.Matrix4().getInverse(rot);
 
 // Create a THREE.Box3 from a 3D Tiles OBB
 function createTHREEBoxFromOBB(box) {
   const center = new THREE.Vector3(box[0], box[1], box[2]);
+  const xVector = new THREE.Vector3(box[3], box[4], box[5]);
+  const yVector = new THREE.Vector3(box[6], box[7], box[8]);
+  const zVector = new THREE.Vector3(box[9], box[10], box[11]);
   const trans = new THREE.Matrix4().makeTranslation(center.x, center.y, center.z);
-  const rot1 = new THREE.Matrix4().makeRotationX((90 + 34.528457957255185) * Math.PI / 180);
-  const rot2 = new THREE.Matrix4().makeRotationZ((90 - 58.5348063426956) * Math.PI / 180);
-  const x = Math.sqrt(box[3]*box[3]+box[4]*box[4]+box[5]*box[5]);
-  const y = Math.sqrt(box[9]*box[9]+box[10]*box[10]+box[11]*box[11]);
-  const z = Math.sqrt(box[6]*box[6]+box[7]*box[7]+box[8]*box[8]);
+
+  var iVersor = new THREE.Vector3(1, 0, 0);
+  const kVersor = new THREE.Vector3(0, 0, 1);
+  const axisRotZ = new THREE.Vector3(-zVector.y, zVector.x, 0).normalize();//producto cruz entre (0,0,1) y zBouding
+  const anguloZ = kVersor.angleTo(zVector);
+  const rotation1 = new THREE.Matrix4().makeRotationAxis(axisRotZ, anguloZ);
+  iVersor.applyMatrix4(rotation1);
+  const anguloX = iVersor.angleTo(xVector);
+  const axisRotX = new THREE.Vector3(iVersor.x, iVersor.y, iVersor.z).cross(xVector).normalize();
+  const rotation2 = new THREE.Matrix4().makeRotationAxis(axisRotX, anguloX);
+
+  const x = xVector.length();
+  const y = yVector.length();
+  const z = zVector.length();
+
   const sw = new THREE.Vector3(-x, -y, -z);
-  const ne = new THREE.Vector3( x,  y,  z);
-  const boxR = new THREE.Box3(sw, ne);
-  boxR.applyMatrix4(rot1);
-  boxR.applyMatrix4(rot2);
+  const ne = new THREE.Vector3(x, y, z);
+  var boxR = new THREE.Box3(sw, ne);
+  boxR.applyMatrix4(rotation1);
+  boxR.applyMatrix4(rotation2);
   boxR.applyMatrix4(trans);
 
   return boxR;
@@ -31,25 +50,40 @@ function createTHREESphereFromOBB(box) {
   for (var i = 3; i <= 11; i++) {
     rad += box[i] * box[i];
   }
-  rad = Math.sqrt(rad );
+  rad = Math.sqrt(rad);
   const sphere = new THREE.Sphere(center, rad);
 
   return sphere;
 }
 
 function createTHREEOutlineFromOBB(box) {
+
   const center = new THREE.Vector3(box[0], box[1], box[2]);
+  const xVector = new THREE.Vector3(box[3], box[4], box[5]);
+  const yVector = new THREE.Vector3(box[6], box[7], box[8]);
+  const zVector = new THREE.Vector3(box[9], box[10], box[11]);
+  var iVersor = new THREE.Vector3(1, 0, 0);
+  const kVersor = new THREE.Vector3(0, 0, 1);
   const trans = new THREE.Matrix4().makeTranslation(center.x, center.y, center.z);
-  const rot1 = new THREE.Matrix4().makeRotationX((90 + 34.70838499415735) * Math.PI / 180);
-  const rot2 = new THREE.Matrix4().makeRotationZ((90 - 58.5348063426956) * Math.PI / 180);
-  const x = Math.sqrt(box[3]*box[3]+box[4]*box[4]+box[5]*box[5]);
-  const z = Math.sqrt(box[9]*box[9]+box[10]*box[10]+box[11]*box[11]);
-  const y = Math.sqrt(box[6]*box[6]+box[7]*box[7]+box[8]*box[8]);
-  const geom = new THREE.BoxGeometry(x * 2, y * 2, z * 2);
+
+  const axisRotZ = new THREE.Vector3(-zVector.y, zVector.x, 0).normalize();//producto cruz entre (0,0,1) y zBouding
+
+  const anguloZ = kVersor.angleTo(zVector);
+  const rotation1 = new THREE.Matrix4().makeRotationAxis(axisRotZ, anguloZ);
+
+  iVersor.applyMatrix4(rotation1);
+
+  const anguloX = iVersor.angleTo(xVector);
+  const axisRotX = new THREE.Vector3(iVersor.x, iVersor.y, iVersor.z).cross(xVector).normalize();
+  const rotation2 = new THREE.Matrix4().makeRotationAxis(axisRotX, anguloX);
+
+  const dimensions = new THREE.Vector3(xVector.length(), yVector.length(), zVector.length());
+
+  const geom = new THREE.BoxGeometry(dimensions.x * 2, dimensions.y * 2, dimensions.z * 2);
   const edges = new THREE.EdgesGeometry(geom);
-  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x00ff00 }));
-  line.applyMatrix(rot1);
-  line.applyMatrix(rot2);
+  var line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x00ff00 }));
+  line.applyMatrix(rotation1);
+  line.applyMatrix(rotation2);
   line.applyMatrix(trans);
 
   return line;
@@ -58,14 +92,11 @@ function createTHREEOutlineFromOBB(box) {
 function createTHREEOutlineSphereFromOBB(sphere) {
   const center = sphere.center;
   const trans = new THREE.Matrix4().makeTranslation(center.x, center.y, center.z);
-  const rot1 = new THREE.Matrix4().makeRotationX((90 + 34.70838499415735) * Math.PI / 180);
-  const rot2 = new THREE.Matrix4().makeRotationZ((90 - 58.5348063426956) * Math.PI / 180);
   const rad = sphere.radius;
   const geom = new THREE.SphereGeometry(rad, 16, 8, 0, Math.PI, 0, Math.PI);
-  const material = new THREE.MeshBasicMaterial({ color: 0x01ff01 , wireframe: true, transparent: true, opacity: 0.1});
+  const material = new THREE.MeshBasicMaterial({ color: 0x01ff01, wireframe: true, transparent: true, opacity: 0.1 });
   const sph = new THREE.Mesh(geom, material);
-  sph.applyMatrix(rot1);
-  sph.applyMatrix(rot2);
+  sph.applyMatrix(rot);
   sph.applyMatrix(trans);
 
   return sph;
@@ -88,7 +119,7 @@ export default class TileHeader {
 
     if (json.boundingVolume) {
       this.boundingVolume = json.boundingVolume;
-      if (this.boundingVolume.box && false) {
+      if (this.boundingVolume.box) {
         const boundingGeometry = this.boundingVolume.box;
         this.isBox = true;
         this.boundingGeometry = createTHREEBoxFromOBB(boundingGeometry);
@@ -96,10 +127,10 @@ export default class TileHeader {
           this.totalContent.add(createTHREEOutlineFromOBB(boundingGeometry));
         }
       }
-      else if (this.boundingVolume.sphere || true) {
-        const boundingGeometry = this.boundingVolume.box;
+      else if (this.boundingVolume.sphere) {
+        const boundingGeometry = this.boundingVolume.sphere;
         this.isSphere = true;
-        this.boundingGeometry = createTHREESphereFromOBB(boundingGeometry);
+        this.boundingGeometry = createTHREESphereFromOBB(this.boundingVolume.box);
         if (DEBUG) {
           this.totalContent.add(createTHREEOutlineSphereFromOBB(this.boundingGeometry));
         }
