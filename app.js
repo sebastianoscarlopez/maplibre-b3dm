@@ -1,19 +1,13 @@
-/* global mapboxgl */ // Imported via <script> tag
-import Mapbox3DTilesLayer from './mapbox-3d-tiles-layer/mapbox-3d-tiles-layer';
+/* global maplibregl */ // Imported via <script> tag
+import maplibre3DTilesLayer from './maplibre-3d-tiles-layer/maplibre-3d-tiles-layer';
 
-// TODO - Add your mapbox token here
-mapboxgl.accessToken =
-  'pk.eyJ1Ijoic2ViYXN0aWFub3NjYXJsb3BleiIsImEiOiJjbDA1ZW5ueDkxbmszM2RucHdueW02MXViIn0.7WjEaDjCoKzpbaB3rZ_RAg'; //process.env.MapboxAccessToken; // eslint-disable-line
-
-//const BASE_TILESET_URL = 'http://localhost:3002';
-//const BUENOS_AIRES_TILESET_URL = `${BASE_TILESET_URL}/tileset.json`;
-const BASE_TILESET_URL = 'http://localhost:3002';
+const BASE_TILESET_URL = 'https://dami.loca.lt';
 const BUENOS_AIRES_TILESET_URL = `${BASE_TILESET_URL}/MESH_2021/L15/LR/6359_6158_-001_lv15_0_transform.json`;
 
-// Load the mapbox map
-const map = new mapboxgl.Map({
+// Load the maplibre map
+const map = new maplibregl.Map({
   container: 'map',
-  style: 'mapbox://styles/mapbox/dark-v10?optimize=true',
+  style: 'https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
   center: [-58.381507, -34.603344],
   zoom: 8.5,
   bearing: 0,
@@ -23,12 +17,12 @@ const map = new mapboxgl.Map({
 });
 
 map.on('style.load', function () {
-  const buenosAires = new Mapbox3DTilesLayer({
+  const buenosAires = new maplibre3DTilesLayer({
     id: 'buenos_aires',
     url: BUENOS_AIRES_TILESET_URL,
     color: 0xffffff,
     opacity: 1.0
   });
-  map.addLayer(buenosAires, 'waterway-label');
+  map.addLayer(buenosAires);
 
 });
