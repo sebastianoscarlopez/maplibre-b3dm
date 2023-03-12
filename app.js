@@ -37,6 +37,52 @@ map.on('style.load', function () {
 
   map.addLayer(floodLayer());
 
+  map.addSource("bsas", {
+    type: "vector",
+    // "scheme": "tms",
+    tiles: [
+      "https://vectortiles.usig.buenosaires.gob.ar/cur3d/volumen_edif/{z}/{x}/{y}.pbf?optimize=true",
+    ],
+  });
+  map.addLayer(
+    {
+      'id': 'bsas',
+      'source': 'bsas',
+      'source-layer': 'default',
+      // 'filter': ['==', 'a', 'b'],
+      'type': 'fill-extrusion',
+      'paint': {
+        "fill-extrusion-color": "#fdd306",
+        "fill-extrusion-opacity": 0,
+        "fill-extrusion-height": ["get", "altura_fin"]
+      }
+    }
+  );
+
+  map.addLayer(
+    {
+      'id': 'bsas_hover',
+      'source': 'bsas',
+      'source-layer': 'default',
+      'filter': ['==', 'a', 'b'],
+      'type': 'fill-extrusion',
+      'paint': {
+        "fill-extrusion-color": "#ff5555",
+        "fill-extrusion-opacity": 1,
+        "fill-extrusion-height": ["get", "altura_fin"]
+      }
+    }
+  );
+  console.log(map)
+
+  map.on('mousemove', 'bsas', function (e) {
+    const smp = e.features.map(({ properties: { smp } }) => smp);
+    // console.log(smp)
+    // map.setPaintProperty('bsas', 'fill-extrusion-color', ['case', ['==', ['get', 'smp'], smp[0]], '#f00', '#ff0']);
+    map.setFilter('bsas_hover', ['==', 'smp', smp[0]]);
+    // map.setPaintProperty('bsas', 'fill-extrusion-opacity', 1);
+
+  });
   const slider = document.getElementById("slider-input");
 
   slider.addEventListener("input", () => {
