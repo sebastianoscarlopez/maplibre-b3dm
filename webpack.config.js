@@ -1,3 +1,5 @@
+const path = require('path');
+
 const CONFIG = {
   mode: 'development',
 
@@ -11,6 +13,11 @@ const CONFIG = {
 
   module: {
     rules: [
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+        include: path.join(__dirname, '.')
+      }
       // {
       //   // Transpile ES6 to ES5 with babel
       //   // Remove if your app does not use JSX or you don't need to support old browsers
